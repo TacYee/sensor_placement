@@ -1,0 +1,4 @@
+obj-y += app_main.o
+obj-y += mission_fsm.o
+obj-y += trajectory.o
+obj-y += servo_test.o

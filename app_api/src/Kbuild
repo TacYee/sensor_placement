@@ -1,0 +1,2 @@
+obj-y += app_main.o
+obj-y += trajectory_tracking.o

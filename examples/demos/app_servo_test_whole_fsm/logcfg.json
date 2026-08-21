@@ -1,0 +1,372 @@
+{
+
+    "attitude":{
+        "name": "attitude",
+        "type": "CF",
+        "period": 20,
+        "variables": ["stabilizer.roll",
+                      "stabilizer.pitch",
+                      "stabilizer.yaw"],
+        "headers": ["roll", "pitch", "yaw"]
+    },
+
+    "motor":{
+        "name": "motor",
+        "type": "CF",
+        "period": 20,
+        "variables": ["motor.m1",
+                      "motor.m2",
+                      "motor.m3",
+                      "motor.m4"
+                      ],
+        "headers": ["motor1", "motor2", "motor3", "motor4"]
+    },
+
+    "state":{
+        "name": "state",
+        "type": "CF",
+        "period": 20,
+        "variables": ["stateEstimate.x",
+                      "stateEstimate.y",
+                      "stateEstimate.z",
+                      "stateEstimate.vx",
+                      "stateEstimate.vy"],
+        "headers": ["stateX", "stateY", "stateZ", "stateVX", "stateVY"]
+    },
+
+    "state_kf":{
+        "name": "state_kf",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.stateX",
+                      "kalman.stateY",
+                      "kalman.statePX",
+                      "kalman.statePY"],
+        "headers": ["stateX_kf", "stateY_kf", "stateVX_kf", "stateVY_kf"]
+    },
+
+    "state_wo":{
+        "name": "state_wo",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.stateX_wo",
+                      "kalman.stateY_wo"],
+        "headers": ["stateX_wo", "stateY_wo"]
+    },
+
+    "state_wf":{
+        "name": "state_wf",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.stateX_wf",
+                      "kalman.stateY_wf",
+                      "kalman.statePX_wf",
+                      "kalman.statePY_wf"],
+        "headers": ["stateX_wf", "stateY_wf", "statevX_wf", "statevY_wf"]
+    },
+
+        "state_wof":{
+        "name": "state_wof",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.stateX_wof",
+                      "kalman.stateY_wof",
+                      "kalman.statePX_wof",
+                      "kalman.statePY_wof"],
+        "headers": ["stateX_wof", "stateY_wof", "statevX_wof", "statevY_wof"]
+    },
+
+    "kalman_nodynamics": {
+    "name": "kalman_nodynamics",
+    "type": "CF",
+    "period": 20,
+    "variables": [
+        "kalman.stateX_noDyn",
+        "kalman.stateY_noDyn",
+        "kalman.statePX_noDyn",
+        "kalman.statePY_noDyn",
+        "kalman.statePZ_noDyn"
+    ],
+    "headers": [
+        "stateX_noDyn",
+        "stateY_noDyn",
+        "statePX_noDyn",
+        "statePY_noDyn",
+        "statePZ_noDyn"
+    ]
+    },
+
+    "var":{
+        "name": "var",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.varX",
+                      "kalman.varY",
+                      "kalman.varPX",
+                      "kalman.varPY"],
+        "headers": ["var_x", "var_y", "var_vx", "var_vy"]
+    },
+  
+    "var_wf":{
+        "name": "var_wf",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.varX_wf",
+                      "kalman.varY_wf",
+                      "kalman.varPX_wf",
+                      "kalman.varPY_wf"],
+        "headers": ["var_x_wf", "var_y_wf", "var_vx_wf", "var_vy_wf"]
+    },
+
+    "K":{
+        "name": "K",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.K_px",
+                      "kalman.K_py"],
+        "headers": ["K_px", "K_py"]
+    },
+
+    "K_wf":{
+        "name": "K_wf",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.K_px_wf",
+                      "kalman.K_py_wf"],
+        "headers": ["K_px_wf", "K_py_wf"]
+    },
+    
+
+    "F":{
+        "name": "F",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.fx",
+                      "kalman.fy",
+                      "kalman.friction"],
+        "headers": ["fx", "fy", "friction"]
+    },
+    
+    "whisker1":{
+        "name": "whisker1",
+        "type": "CF",
+        "period": 20,
+        "variables": ["Whisker.Barometer1_1",
+                      "Whisker.Barometer1_2",
+                      "Whisker.Barometer1_3"],
+        "headers": ["whisker1_1", "whisker1_2", "whisker1_3"]
+    },
+
+    "whisker2":{
+        "name": "whisker2",
+        "type": "CF",
+        "period": 20,
+        "variables": ["Whisker1.Barometer2_1",
+                      "Whisker1.Barometer2_2",
+                      "Whisker1.Barometer2_3"],
+        "headers": ["whisker2_1", "whisker2_2", "whisker2_3"]
+    },
+
+    "PreWhisker1":{
+        "name": "PreWhisker1",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.PreprocessWhisker1_1",
+                      "app.PreprocessWhisker1_2",
+                      "app.PreprocessWhisker1_3"],
+        "headers": ["prewhisker1_1", "prewhisker1_2", "prewhisker1_3"]
+    },
+
+    "PreWhisker2":{
+        "name": "PreWhisker2",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.PreprocessWhisker2_1",
+                      "app.PreprocessWhisker2_2",
+                      "app.PreprocessWhisker2_3"],
+        "headers": ["prewhisker2_1", "prewhisker2_2", "prewhisker2_3"]
+    },
+
+    "MLPOUTPUT":{
+        "name": "MLPOUTPUT",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.MlpOutput1",
+                      "app.MlpOutput2"],
+        "headers": ["MLPwhisker1", "MLPwhisker2"]
+    },
+
+    "KFOUTPUT":{
+        "name": "KFOUTPUT",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.KFMlpOutput1",
+                      "app.KFMlpOutput2"],
+        "headers": ["KFwhisker1","KFwhisker2"]
+    },
+
+    "GPISLABEL":{
+        "name": "GPISLABEL",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.GpisLabel"],
+        "headers": ["gpislabel"]
+    },
+
+
+    "StateOuterLoop":{
+        "name": "StateOuterLoop",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.stateOuterLoop"],
+        "headers": ["stateouterloop"]
+    },
+
+    "StateInnerLoop":{
+        "name": "StateInnerLoop",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.stateInnerLoop"],
+        "headers": ["stateinnerloop"]
+    },
+
+    "cmd":{
+        "name": "cmd",
+        "type": "CF",
+        "period": 20,
+        "variables": ["app.cmdVelX",
+                      "app.cmdVelY",
+                      "app.cmdAngWDeg"],
+        "headers": ["cmdx","cmdy","cmdyaw"]
+    },
+
+
+    "orientation":{
+        "name": "orientation",
+        "type": "CF",
+        "period": 20,
+        "variables": ["stabilizer.yaw"],
+        "headers": ["yaw"]
+    },
+
+    "flow":{
+        "name": "flow",
+        "type": "CF",
+        "period": 20,
+        "variables": ["motion.deltaX",
+                      "motion.deltaY"],
+        "headers": ["flowX", "flowY"]
+    },
+    
+    "laser":{
+        "name": "laser",
+        "type": "CF",
+        "period": 20,
+        "variables": ["range.front"],
+        "headers": ["laserFront"]
+    },
+
+    "kalman":{
+        "name": "kalman",
+        "type": "CF",
+        "period": 20,
+        "variables": ["kalman.stateX",
+                      "kalman.stateY",
+                      "kalman.stateZ",
+                      "kalman.statePX",
+                      "kalman.statePY",
+                      "kalman.statePZ"],
+        "headers": ["kalX", "kalY", "kalZ", "kalPX", "kalPY", "kalPZ"]
+    },
+
+    "acc":{
+        "name": "acc",
+        "type": "CF",
+        "period": 20,
+        "variables": ["acc.x",
+                      "acc.y",
+                      "acc.z"],
+        "headers": ["accx", "accy", "accz"]
+    },
+
+
+    "otpos":{
+        "name": "otpos",
+        "type": "CF",
+        "period": 20,
+        "variables": ["locSrv.x",
+                      "locSrv.y",
+                      "locSrv.z"],
+        "headers": ["otX", "otY", "otZ"]
+    },
+
+
+    "mocap": {
+        "name": "mocap",
+        "type": "EXT",
+        "period": 20,
+        "variables": ["pos_x", "pos_y", "yaw"],
+        "headers": ["Position X", "Position Y", "yaw"]
+    },
+
+    "traj": {
+        "name": "traj",
+        "type": "CF",
+        "period": 20,
+        "variables": ["traj.traj_x", "traj.traj_y"],
+        "headers": ["trajx", "trajy"]
+    },
+
+    "whisker1_withtemp": {
+        "name": "whisker1_withtemp",
+        "type": "CF",
+        "period": 20,
+        "variables": ["Whisker.Barometer1_1",
+                      "Whisker.Barometer1_2",
+                      "Whisker.Barometer1_3",
+                      "Whisker.Temperature1_1",
+                      "Whisker.Temperature1_2",
+                      "Whisker.Temperature1_3"],
+        "headers": ["whisker1_1", "whisker1_2", "whisker1_3", "temp1_1", "temp1_2", "temp1_3"]
+    },
+
+    "mission": {
+        "name": "mission",
+        "type": "CF",
+        "period": 20,
+        "variables": [
+            "mission.state",
+            "mission.trajIndex",
+            "mission.cmdA",
+            "mission.cmdB",
+            "mission.cmdHeight",
+            "mission.contact"
+        ],
+        "headers": [
+            "mission_state",
+            "traj_index",
+            "cmdA",
+            "cmdB",
+            "cmdHeight",
+            "contact"
+        ]
+    },
+    "mission_nd": {
+        "name": "mission_nd",
+        "type": "CF",
+        "period": 20,
+        "variables": [
+            "mission.noDynVx",
+            "mission.noDynVy",
+            "mission.noDynSpeed"
+        ],
+        "headers": [
+            "noDynVx",
+            "noDynVy",
+            "noDynSpeed"
+        ]
+    }
+}
+
+
+
