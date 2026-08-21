@@ -1,196 +1,232 @@
-# Sensor Placement Demo - Crazyflie
+# Sensor Placement Demo for Crazyflie
 
-This folder contains the out-of-tree Crazyflie app used for the sensor-placement / landing-frame installation demo. It receives a pre-generated XY trajectory over CRTP, runs the onboard mission FSM, controls the servo, and logs the drone state during the mission.
+This repository contains the Crazyflie firmware and Python code used for the sensor-placement and landing-frame installation demo.
+
+During the mission, the Crazyflie receives a pre-generated XY trajectory over CRTP, follows the trajectory using an onboard finite-state machine (FSM), detects contact, actuates a servo, moves backward, and lands. The Python script also records flight data for later analysis.
+
+> **Safety warning:** This project controls a flying robot and an external actuator. Test the firmware and servo with the propellers removed before attempting a real flight. Use a clear test area and make sure an emergency-stop procedure is available.
+
+## 1. Repository structure
+
+The custom application is located in:
+
+```text
+examples/demos/app_servo_test_whole_fsm/
+```
 
 The main files are:
 
-- `src/app_main.c` - app loop, state estimate + mission FSM bridge
-- `src/mission_fsm.c` - state machine for hover, trajectory follow, contact detection, servo trigger, landing
-- `src/servo_test.c` - servo control logic
-- `installationdrone.py` - Python script that sends the trajectory and controls the flight sequence
-- `logcfg.json` - logging configuration for flight data
-- `data/installation_drone_logs/` - recorded logs
+| File | Purpose |
+|---|---|
+| `src/app_main.c` | Main app loop and bridge between the Crazyflie state estimate and mission FSM |
+| `src/mission_fsm.c` | Mission states for hovering, trajectory following, contact, servo actuation, backward flight, and landing |
+| `src/servo_test.c` | Servo-control logic |
+| `installationdrone.py` | Sends the trajectory, starts the mission, and records flight logs |
+| `logcfg.json` | Logging configuration |
+| `data/installation_drone_logs/` | Recorded flight logs |
+| `app-config` | Firmware configuration for this out-of-tree app |
+| `Makefile` | Builds the app together with the Crazyflie firmware |
 
-This README is written as a step-by-step checklist so a new user can build, flash, and run the demo without guessing.
+The onboard mission follows this sequence:
 
----
-
-## 1. Hardware and software prerequisites
-
-### Required hardware
-
-- Crazyflie 2.x or Crazyflie 2.1 Brushless
-- Crazyradio or Crazyradio PA
-- Servo and actuator connected to the board as defined in the firmware app
-- A stable test area and a proper takeoff/landing area
-- USB cable for debugging if needed
-
-### Required software
-
-Follow the official Crazyflie build and flashing guide first:
-
-- https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/building-and-flashing/build/
-
-That page is the required setup reference for the toolchain and the official Crazyflie client / flashing workflow for your platform.
-
-> If you are on Windows, use WSL and follow the official Ubuntu/WSL setup in that guide. Do not skip the official build-and-flash instructions before trying to run this demo.
-
----
-
-## 2. Clone the repo and fetch submodules
-
-From a Linux terminal:
-
-```bash
-git clone --recursive https://github.com/bitcraze/crazyflie-firmware.git
-cd crazyflie-firmware
+```text
+IDLE -> HOVERING -> FOLLOWING -> FLY_FORWARD -> CONTACT
+     -> SERVO_CW -> FLY_BACKWARD -> LANDING -> FINISHED
 ```
 
-If you already cloned without `--recursive`:
+## 2. Hardware requirements
+
+- Crazyflie 2.1 Brushless
+- Crazyradio or Crazyradio PA
+- Servo and installation mechanism connected as expected by the firmware
+- Charged Crazyflie battery
+- Computer capable of running the Crazyflie development tools
+- Clear and controlled flight area
+
+The current servo implementation expects the servo signal on **TX2 / PA2**. Check the wiring and servo power requirements before applying power.
+
+## 3. Set up the Crazyflie development environment
+
+Before using this repository, follow the official Bitcraze building and flashing guide:
+
+https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/building-and-flashing/build/
+
+Complete the official setup before continuing. In particular, make sure that:
+
+- the Crazyflie ARM toolchain is installed;
+- Crazyradio is recognized by your computer;
+- the Crazyflie client (`cfclient`) is installed;
+- `cfclient` can connect to your Crazyflie;
+- you are able to build and flash standard Crazyflie firmware.
+
+Windows users should follow the WSL instructions in the same official guide.
+
+Once `cfclient` can connect to the Crazyflie and the normal flashing workflow works, continue below.
+
+## 4. Clone this repository
+
+Open a Linux or WSL terminal. Choose a directory whose path contains no spaces, then run:
+
+```bash
+git clone --recursive https://github.com/TacYee/sensor_placement.git
+cd sensor_placement
+```
+
+Do not clone the standard Bitcraze `crazyflie-firmware` repository instead. This repository already contains the Crazyflie firmware together with the custom sensor-placement app.
+
+If the repository was cloned without `--recursive`, initialize the submodules manually:
 
 ```bash
 git submodule update --init --recursive
 ```
 
----
-
-## 3. Build the firmware
-
-This demo is an out-of-tree app. Build the main firmware first, then build the demo app.
-
-### 3.1 Configure the correct target
-
-For a Crazyflie 2.1 Brushless board, use:
+Check that the Crazyflie Python library is available in the same Python environment used by `cfclient`:
 
 ```bash
-cd crazyflie-firmware
+python3 -c "import cflib; print('cflib is ready')"
+```
+
+If `cflib` is missing, install it in the current Python environment:
+
+```bash
+python3 -m pip install cflib
+```
+
+## 5. Build the sensor-placement firmware
+
+From the repository root, enter the custom app directory:
+
+```bash
+cd examples/demos/app_servo_test_whole_fsm
+```
+
+Configure the firmware for the Crazyflie 2.1 Brushless:
+
+```bash
 make cf21bl_defconfig
 ```
 
-If you are using a standard Crazyflie 2.x, use:
-
-```bash
-make cf2_defconfig
-```
-
-### 3.2 Build the firmware
+Build the firmware:
 
 ```bash
 make -j$(nproc)
 ```
 
-This generates the firmware binary in the firmware build directory, usually under:
+This is an out-of-tree app build. It automatically builds the Crazyflie firmware together with the sensor-placement application. The standard firmware does not need to be built separately first.
+
+After a successful build, inspect the generated firmware files:
+
+```bash
+find build -maxdepth 2 -type f \( -name "*.bin" -o -name "*.elf" -o -name "*.hex" \)
+```
+
+For the Crazyflie 2.1 Brushless, the generated binary is normally:
 
 ```text
-crazyflie-firmware/build/
+build/cf21bl.bin
 ```
 
-### 3.3 Build this out-of-tree demo app
+## 6. Flash the firmware
 
-Go to the demo directory:
-
-```bash
-cd examples/demos/app_servo_test_whole_fsm
-make clean
-make
-```
-
-This app uses the `app-config` file in this folder and builds the firmware as an app layer extension. You should see the build finish successfully. If the build output is not obvious, find the binary with:
-
-```bash
-find .. -name "cf21bl*.bin" -o -name "cf2*.bin"
-```
-
----
-
-## 4. Flash the firmware to the Crazyflie
-
-There are two common ways.
-
-### Option A: flash using Crazyradio and the wireless bootloader
+### Option A: wireless flashing with Crazyradio
 
 1. Turn the Crazyflie off.
-2. Put it into bootloader mode by holding the power button for about 3 seconds until the blue LEDs blink together.
-3. From the firmware root, run:
+2. Hold the power button for approximately three seconds.
+3. Release the button when both blue LEDs start blinking.
+4. From the app directory, run:
 
 ```bash
-cd crazyflie-firmware
 make cload
 ```
 
-This tries to flash the current compiled firmware to the Crazyflie in bootloader mode.
+Only one Crazyflie within radio range should be in bootloader mode.
 
-If you want to specify the URI directly:
+To target a specific Crazyflie URI, keep the Crazyflie powered on and run:
 
 ```bash
 CLOAD_CMDS="-w radio://0/80/2M/E7E7E7E7E8" make cload
 ```
 
-If you want to flash the generated binary directly with the loader:
+Replace the URI with the address of your Crazyflie if it is different.
+
+The generated binary can also be flashed directly:
 
 ```bash
-cfloader flash build/cf21bl.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E8
+cfloader flash build/cf21bl.bin stm32-fw \
+  -w radio://0/80/2M/E7E7E7E7E8
 ```
 
-> Replace the URI with your own Crazyflie radio address if needed.
+### Option B: flashing with a debug adapter
 
-### Option B: flash via ST-Link / debug adapter
-
-If you have a debug adapter:
+If an ST-Link-compatible debug adapter and OpenOCD are installed, run:
 
 ```bash
-cd crazyflie-firmware
 make flash
 ```
 
-This requires OpenOCD and an ST-Link-compatible debugger to be installed and configured.
+## 7. Check the mission files
 
----
-
-## 5. Verify the app is running
-
-After flashing, power on the Crazyflie and connect to it from your terminal.
-
-A quick sanity check is to use the Python client and connect to the drone URI:
-
-```bash
-cd crazyflie-firmware/examples/demos/app_servo_test_whole_fsm
-python3 -c "import cflib.crtp; cflib.crtp.init_drivers(); print('cflib ok')"
-```
-
-Then you can run the mission script described below.
-
----
-
-## 6. Run the sensor placement / installation demo
-
-This folder includes a Python runner named `installationdrone.py`.
-
-The script:
-
-- resets mission flags
-- optionally moves the servo to the CCW starting angle
-- arms the drone
-- sends the landing-frame trajectory over CRTP
-- starts the mission
-- logs flight data to CSV files
-
-### 6.1 Choose a trajectory CSV
-
-The demo already includes a few trajectory files in this folder such as:
+All commands below should be run from:
 
 ```text
-next_drone_full_trajectory_landing_frame_20260522_132342.csv
+sensor_placement/examples/demos/app_servo_test_whole_fsm/
 ```
 
-You can also use one from `data/installation_drone_logs/` if you already have a generated result.
-
-### 6.2 Launch the mission
-
-Run the script from this demo directory:
+Display the options supported by the mission script:
 
 ```bash
-cd crazyflie-firmware/examples/demos/app_servo_test_whole_fsm
+python3 installationdrone.py --help
+```
+
+Check that the default trajectory and logging configuration exist:
+
+```bash
+ls -lh next_drone_full_trajectory_landing_frame_20260522_132342.csv
+ls -lh logcfg.json
+```
+
+If a different trajectory is used, replace the CSV filename in the commands below.
+
+## 8. Perform a dry run
+
+Before connecting to or flying the Crazyflie, verify that the trajectory can be loaded:
+
+```bash
+python3 installationdrone.py \
+  --traj_csv next_drone_full_trajectory_landing_frame_20260522_132342.csv \
+  --dry_run
+```
+
+The dry run previews the trajectory without starting a real flight.
+
+If it fails, check that:
+
+- the CSV file exists;
+- the filename and path are correct;
+- `cflib` is installed in the active Python environment;
+- all other Python packages reported by the error are installed.
+
+## 9. Pre-flight checklist
+
+Complete every item before starting a real mission:
+
+- [ ] The firmware builds without errors.
+- [ ] The custom firmware has been flashed successfully.
+- [ ] `cfclient` can connect to the Crazyflie.
+- [ ] The battery is sufficiently charged.
+- [ ] The servo wiring has been checked.
+- [ ] The servo direction has been tested without propellers.
+- [ ] The installation mechanism moves without jamming.
+- [ ] The correct trajectory CSV has been selected.
+- [ ] The drone is placed at the expected starting location.
+- [ ] The flight area is clear.
+- [ ] The operator is ready to stop the mission if required.
+
+## 10. Run the mission
+
+From the app directory, run:
+
+```bash
 python3 installationdrone.py \
   --uri radio://0/80/2M/E7E7E7E7E8 \
   --traj_csv next_drone_full_trajectory_landing_frame_20260522_132342.csv \
@@ -204,36 +240,32 @@ python3 installationdrone.py \
   --init_servo_ccw
 ```
 
-This command will:
+Replace the URI and trajectory filename when necessary.
 
-1. connect to the Crazyflie
-2. reset the trajectory flags
-3. initialize the servo to the CCW starting position
-4. reset the estimator
-5. arm the drone
-6. send the trajectory points over CRTP
-7. start the mission
-8. log the mission to CSV
+The script will:
 
-### 6.3 Manual emergency stop
+1. connect to the Crazyflie;
+2. reset the mission and trajectory flags;
+3. move the servo to its counter-clockwise starting position;
+4. reset the estimator;
+5. arm the Crazyflie;
+6. send the trajectory points over CRTP;
+7. start the onboard mission;
+8. record the requested logs.
 
-If you need to stop the mission during flight, press `Ctrl+C`.
+## 11. Stop the mission
 
-The script will request an onboard landing and then disarm on exit.
+To stop the script during flight, press:
 
----
-
-## 7. Useful optional commands
-
-### Dry run only (preview the path without connecting)
-
-```bash
-python3 installationdrone.py \
-  --traj_csv next_drone_full_trajectory_landing_frame_20260522_132342.csv \
-  --dry_run
+```text
+Ctrl+C
 ```
 
-### Force a collision for test logic
+The script will attempt to request an onboard landing and disarm before exiting. Always keep the test area clear and maintain an independent emergency-stop procedure in case communication is lost.
+
+## 12. Optional contact-detection test
+
+The state-machine transition can be tested by requesting a simulated collision event:
 
 ```bash
 python3 installationdrone.py \
@@ -243,111 +275,148 @@ python3 installationdrone.py \
   --init_servo_ccw
 ```
 
-This is useful for testing the contact-detection state machine without needing a real external collision.
-
----
-
-## 8. What the firmware is doing during the mission
-
-The app uses the onboard mission FSM to execute these phases:
-
-```text
-IDLE -> HOVERING -> FOLLOWING -> FLY_FORWARD -> CONTACT -> SERVO_CW -> FLY_BACKWARD -> LANDING -> FINISHED
-```
-
-The Python side sends trajectory points as CRTP packets. A final `NaN, NaN` packet marks the end of the trajectory. Then the app sets `traj.start=1` to start the mission.
-
-The servo motion is controlled through the `servotest.cmd` parameter:
-
-- `1` = CCW
-- `2` = CW
-
-This is handled by `servo_test.c` and triggered during the mission state machine.
-
----
-
-## 9. Where to check logs
-
-The logs are written to:
-
-```text
-crazyflie-firmware/examples/demos/app_servo_test_whole_fsm/data/installation_drone_logs/
-```
-
-The default log config is in:
-
-```text
-crazyflie-firmware/examples/demos/app_servo_test_whole_fsm/logcfg.json
-```
-
-If you want to inspect or analyze the flight data, use the Jupyter notebooks in this folder such as the tracking-analysis notebooks.
-
----
-
-## 10. Common troubleshooting
-
-### Build fails because the compiler is missing
+Use this only in a controlled test. Run the following command to check the exact meaning of the option:
 
 ```bash
-sudo apt install -y gcc-arm-none-eabi make
+python3 installationdrone.py --help
 ```
 
-### Wrong board configuration
+## 13. How the mission communication works
 
-The app configuration contains:
+The Python script sends the XY trajectory to the Crazyflie as CRTP packets. A final packet containing:
 
 ```text
-CONFIG_PLATFORM_CF21BL=y
+NaN, NaN
 ```
 
-This implies the demo is meant for Crazyflie 2.1 Brushless. If you are using another platform, change the configuration accordingly or build against the correct target.
+marks the end of the trajectory. The mission begins when the application sets:
 
-### The drone does not flash
+```text
+traj.start = 1
+```
 
-- Make sure the Crazyflie is in bootloader mode
-- Make sure only one Crazyflie is in range
-- Make sure the URI is correct
-- Check that the firmware has been built successfully
+The servo is controlled through the `servotest.cmd` parameter:
 
-### The trajectory is not executing
+| Value | Command |
+|---:|---|
+| `1` | Move counter-clockwise |
+| `2` | Move clockwise |
 
-- Confirm the app is flashed and running
-- Ensure `traj.start` is set to `1` after sending all trajectory points
-- Confirm the final packet is `NaN, NaN`
-- Check the console output for `CRTP trajectory receiver registered` messages
+These commands are handled by `src/servo_test.c` and triggered by the onboard mission FSM.
+
+## 14. Flight logs
+
+The recorded logs are written to:
+
+```text
+examples/demos/app_servo_test_whole_fsm/data/installation_drone_logs/
+```
+
+The default logging configuration is:
+
+```text
+examples/demos/app_servo_test_whole_fsm/logcfg.json
+```
+
+After a flight, list the newest log files with:
+
+```bash
+ls -lht data/installation_drone_logs | head
+```
+
+The Jupyter notebooks in the app directory can be used to inspect the recorded flight data.
+
+## 15. Troubleshooting
+
+### `arm-none-eabi-gcc: command not found`
+
+The Crazyflie ARM toolchain is missing. Return to the official Bitcraze building and flashing guide and complete the toolchain setup.
+
+### `No module named cflib`
+
+Install `cflib` in the Python environment being used to run the mission:
+
+```bash
+python3 -m pip install cflib
+```
+
+### Crazyradio is not detected
+
+Check whether the radio appears as a USB device:
+
+```bash
+lsusb
+```
+
+Then follow the official Bitcraze USB-permission instructions:
+
+https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/usb_permissions/
+
+After updating the USB rules, unplug and reconnect the Crazyradio.
+
+### The firmware builds for the wrong board
+
+Clean and configure the app again:
+
+```bash
+make clean
+make cf21bl_defconfig
+make -j$(nproc)
+```
+
+### `make cload` cannot find the Crazyflie
+
+Check that:
+
+- the Crazyradio is connected;
+- the USB permissions are configured;
+- the Crazyflie is in bootloader mode;
+- only one nearby Crazyflie is in bootloader mode;
+- the specified URI is correct.
+
+### The trajectory does not start
+
+Check that:
+
+- the custom firmware has been flashed;
+- the selected trajectory CSV exists;
+- all trajectory points were transmitted;
+- the final `NaN, NaN` packet was sent;
+- `traj.start` was set to `1`;
+- the terminal shows the expected CRTP receiver messages.
 
 ### The servo does not move
 
-- Confirm the servo is wired correctly to TX2 / PA2
-- Confirm the app is built for the correct board
-- Confirm the startup command `--init_servo_ccw` is used
+Check:
 
----
+- the servo power supply and ground connection;
+- the signal connection to TX2 / PA2;
+- the configured servo limits and pulse widths;
+- whether `--init_servo_ccw` was included;
+- whether the custom firmware was flashed successfully.
 
-## 11. Fastest “do it now” sequence
+Test the servo without propellers before attempting another flight.
 
-If you just want the shortest path to get this running:
+## 16. Quick-start summary
+
+After completing the official Crazyflie setup and confirming that `cfclient` can connect to the drone:
 
 ```bash
-cd crazyflie-firmware
+git clone --recursive https://github.com/TacYee/sensor_placement.git
+cd sensor_placement/examples/demos/app_servo_test_whole_fsm
+
 make cf21bl_defconfig
 make -j$(nproc)
-cd examples/demos/app_servo_test_whole_fsm
-make clean
-make
-```
-
-Put the drone in bootloader mode and run:
-
-```bash
-cd ../..
 make cload
+
+python3 installationdrone.py \
+  --traj_csv next_drone_full_trajectory_landing_frame_20260522_132342.csv \
+  --dry_run
 ```
 
-Then run the demo:
+After the dry run and pre-flight checks succeed:
 
 ```bash
-cd examples/demos/app_servo_test_whole_fsm
 python3 installationdrone.py \
   --uri radio://0/80/2M/E7E7E7E7E8 \
   --traj_csv next_drone_full_trajectory_landing_frame_20260522_132342.csv \
@@ -361,18 +430,9 @@ python3 installationdrone.py \
   --init_servo_ccw
 ```
 
-This is the standard path for running the sensor placement / landing-frame mission end-to-end.
+## Official documentation
 
----
-
-## 12. Summary
-
-The workflow is:
-
-1. install toolchain
-2. configure/build the firmware
-3. flash the firmware to the Crazyflie
-4. run the Python mission script
-5. monitor the logs and trajectory execution
-
-If you follow these steps in order, the demo should run reliably in a normal Crazyflie lab setup.
+- [Crazyflie firmware building and flashing](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/building-and-flashing/build/)
+- [Crazyflie out-of-tree builds](https://www.bitcraze.io/documentation/repository/crazyflie-firmware/master/development/oot/)
+- [Crazyflie Python library installation](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/install/)
+- [Linux Crazyradio USB permissions](https://www.bitcraze.io/documentation/repository/crazyflie-lib-python/master/installation/usb_permissions/)
